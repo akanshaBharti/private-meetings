@@ -1,0 +1,46 @@
+from django.urls import path
+
+from .views import (
+    MeetingAddParticipantsAPIView,
+    MeetingAdmitAPIView,
+    MeetingCountsAPIView,
+    MeetingDetailAPIView,
+    MeetingEndAPIView,
+    MeetingHeartbeatAPIView,
+    MeetingInstantAPIView,
+    MeetingJoinAPIView,
+    MeetingLeaveAPIView,
+    MeetingListCreateAPIView,
+    MeetingPublicHeartbeatAPIView,
+    MeetingPublicJoinAPIView,
+    MeetingPublicJoinStatusAPIView,
+    MeetingPublicLeaveAPIView,
+    MeetingPublicLookupAPIView,
+    MeetingPublicPinVerifyAPIView,
+    MeetingSeriesListCreateAPIView,
+    MeetingUpcomingAPIView,
+    MeetingVideoHealthAPIView,
+)
+
+
+urlpatterns = [
+    path("api/public/<str:meeting_code>/", MeetingPublicLookupAPIView.as_view(), name="meeting-public-lookup"),
+    path("api/public/<str:meeting_code>/verify-pin/", MeetingPublicPinVerifyAPIView.as_view(), name="meeting-public-pin-verify"),
+    path("api/public/<str:meeting_code>/join/", MeetingPublicJoinAPIView.as_view(), name="meeting-public-join"),
+    path("api/public/<str:meeting_code>/leave/", MeetingPublicLeaveAPIView.as_view(), name="meeting-public-leave"),
+    path("api/public/<str:meeting_code>/heartbeat/", MeetingPublicHeartbeatAPIView.as_view(), name="meeting-public-heartbeat"),
+    path("api/public/<str:meeting_code>/join-status/", MeetingPublicJoinStatusAPIView.as_view(), name="meeting-public-join-status"),
+    path("api/health/video/", MeetingVideoHealthAPIView.as_view(), name="meeting-video-health"),
+    path("api/meetings/", MeetingListCreateAPIView.as_view(), name="meeting-list-create"),
+    path("api/meetings/series/", MeetingSeriesListCreateAPIView.as_view(), name="meeting-series-list-create"),
+    path("api/meetings/counts/", MeetingCountsAPIView.as_view(), name="meeting-counts"),
+    path("api/meetings/upcoming/", MeetingUpcomingAPIView.as_view(), name="meeting-upcoming"),
+    path("api/meetings/instant/", MeetingInstantAPIView.as_view(), name="meeting-instant"),
+    path("api/meetings/<str:meeting_id>/", MeetingDetailAPIView.as_view(), name="meeting-detail"),
+    path("api/meetings/<str:meeting_id>/join/", MeetingJoinAPIView.as_view(), name="meeting-join"),
+    path("api/meetings/<str:meeting_id>/leave/", MeetingLeaveAPIView.as_view(), name="meeting-leave"),
+    path("api/meetings/<str:meeting_id>/heartbeat/", MeetingHeartbeatAPIView.as_view(), name="meeting-heartbeat"),
+    path("api/meetings/<str:meeting_id>/end/", MeetingEndAPIView.as_view(), name="meeting-end"),
+    path("api/meetings/<str:meeting_id>/admit/", MeetingAdmitAPIView.as_view(), name="meeting-admit"),
+    path("api/meetings/<str:meeting_id>/participants/", MeetingAddParticipantsAPIView.as_view(), name="meeting-add-participants"),
+]

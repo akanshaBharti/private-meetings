@@ -1,0 +1,103 @@
+from django.conf import settings
+from django.db import migrations, models
+import django.db.models.deletion
+import meetings.models
+
+
+class Migration(migrations.Migration):
+    initial = True
+    dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
+    operations = [
+        migrations.CreateModel(
+            name="MeetingSeries",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, default="")),
+                ("meeting_code", models.CharField(db_index=True, default=meetings.models._generate_meeting_code, max_length=12)),
+                ("external_join_pin_hash", models.CharField(blank=True, default="", max_length=128)),
+                ("external_join_pin_ciphertext", models.CharField(blank=True, default="", max_length=255)),
+                ("recurrence_frequency", models.CharField(choices=[("daily", "Daily")], default="daily", max_length=20)),
+                ("recurrence_rule", models.CharField(blank=True, default="FREQ=DAILY", max_length=120)),
+                ("timezone", models.CharField(default="Asia/Kolkata", max_length=64)),
+                ("start_date", models.DateField()),
+                ("end_date", models.DateField(blank=True, null=True)),
+                ("start_time", models.TimeField()),
+                ("duration_minutes", models.PositiveIntegerField(default=30)),
+                ("working_days", models.JSONField(blank=True, default=list)),
+                ("reminder_minutes_before", models.PositiveIntegerField(default=10)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("host", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="hosted_meeting_series", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["start_time", "title"]},
+        ),
+        migrations.CreateModel(
+            name="Meeting",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, default="")),
+                ("meeting_type", models.CharField(choices=[("instant", "Instant"), ("scheduled", "Scheduled"), ("recurring", "Recurring")], default="scheduled", max_length=20)),
+                ("status", models.CharField(choices=[("scheduled", "Scheduled"), ("live", "Live"), ("ended", "Ended"), ("cancelled", "Cancelled")], default="scheduled", max_length=20)),
+                ("scheduled_date", models.DateField()),
+                ("start_time", models.TimeField()),
+                ("end_time", models.TimeField(blank=True, null=True)),
+                ("duration_minutes", models.PositiveIntegerField(default=30)),
+                ("is_recurring", models.BooleanField(default=False)),
+                ("recurrence_rule", models.CharField(blank=True, default="", max_length=100)),
+                ("meeting_code", models.CharField(default=meetings.models._generate_meeting_code, max_length=12)),
+                ("external_join_pin_hash", models.CharField(blank=True, default="", max_length=128)),
+                ("external_join_pin_ciphertext", models.CharField(blank=True, default="", max_length=255)),
+                ("access_type", models.CharField(choices=[("open", "Open"), ("trusted", "Trusted")], default="trusted", max_length=20)),
+                ("participant_permissions", models.JSONField(blank=True, default=dict)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("actual_start_time", models.DateTimeField(blank=True, null=True)),
+                ("actual_end_time", models.DateTimeField(blank=True, null=True)),
+                ("host", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="hosted_meetings", to=settings.AUTH_USER_MODEL)),
+                ("parent_meeting", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="occurrences", to="meetings.meeting")),
+                ("series", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="occurrences", to="meetings.meetingseries")),
+            ],
+            options={"ordering": ["scheduled_date", "start_time"]},
+        ),
+        migrations.CreateModel(
+            name="MeetingParticipant",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("guest_name", models.CharField(blank=True, default="", max_length=100)),
+                ("guest_email", models.EmailField(blank=True, default="", max_length=254)),
+                ("guest_session_token", models.CharField(blank=True, db_index=True, default="", max_length=96)),
+                ("role", models.CharField(choices=[("host", "Host"), ("participant", "Participant"), ("guest", "Guest (External)")], default="participant", max_length=20)),
+                ("join_status", models.CharField(choices=[("invited", "Invited"), ("joined", "Joined"), ("left", "Left"), ("knocking", "Knocking")], default="invited", max_length=20)),
+                ("joined_at", models.DateTimeField(blank=True, null=True)),
+                ("left_at", models.DateTimeField(blank=True, null=True)),
+                ("last_seen_at", models.DateTimeField(blank=True, null=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("meeting", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="participants", to="meetings.meeting")),
+                ("user", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="meeting_participations", to=settings.AUTH_USER_MODEL)),
+            ],
+            options={"ordering": ["-created_at"]},
+        ),
+        migrations.CreateModel(
+            name="MeetingParticipantSession",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("joined_at", models.DateTimeField()),
+                ("left_at", models.DateTimeField(blank=True, null=True)),
+                ("last_seen_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("participant", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="attendance_sessions", to="meetings.meetingparticipant")),
+            ],
+            options={"ordering": ["joined_at"]},
+        ),
+        migrations.AddIndex(model_name="meeting", index=models.Index(fields=["host", "scheduled_date"], name="meetings_me_host_date_idx")),
+        migrations.AddIndex(model_name="meeting", index=models.Index(fields=["host", "status"], name="meetings_me_host_status_idx")),
+        migrations.AddIndex(model_name="meeting", index=models.Index(fields=["meeting_code"], name="meetings_me_meeting_code_idx")),
+        migrations.AddConstraint(model_name="meeting", constraint=models.UniqueConstraint(condition=models.Q(("is_active", True), ("series__isnull", False)), fields=("series", "scheduled_date"), name="uniq_active_meeting_series_date")),
+        migrations.AddIndex(model_name="meetingparticipant", index=models.Index(fields=["meeting", "join_status", "last_seen_at"], name="meeting_part_seen_idx")),
+        migrations.AddConstraint(model_name="meetingparticipantsession", constraint=models.UniqueConstraint(condition=models.Q(("left_at__isnull", True)), fields=("participant",), name="uniq_open_meeting_part_session")),
+    ]
